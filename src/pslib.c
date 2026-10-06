@@ -41,6 +41,11 @@
 
 #ifdef WIN32
 #include <windows.h>
+static inline int rand_r(unsigned int *seed)
+{
+	*seed = *seed * 1103515245u + 12345u;
+	return (int)(*seed / 65536u) % 32768;
+}
 #include <winbase.h>
 #endif
 
@@ -4519,8 +4524,18 @@ PS_open_image(PSDoc *psdoc, const char *type, const char *source, const char *da
 
 	if(psimage->isreusable) {
 		if(!strcmp(type, "eps")) {
+			unsigned int seed;
+			#ifdef WIN32
+				seed = (unsigned int)time(NULL)
+					 ^ (unsigned int)GetCurrentProcessId()
+					 ^ (unsigned int)GetCurrentThreadId();
+			#else
+				seed = (unsigned int)time(NULL)
+					 ^ (unsigned int)getpid()
+					 ^ (unsigned int)(uintptr_t)pthread_self();
+            #endif
 			char buffer[25];
-			sprintf(buffer, "*EOD%d*", rand());
+			sprintf(buffer, "*EOD%d*", rand_r(&seed));
 			ps_printf(psdoc, "/%s\n", psimage->name);
 			ps_printf(psdoc, "currentfile\n");
 			ps_printf(psdoc, "<< /Filter /SubFileDecode\n");
@@ -5199,8 +5214,18 @@ PS_open_image_file(PSDoc *psdoc, const char *type, const char *filename, const c
 
 	if(psimage->isreusable) {
 		if(!strcmp(type, "eps")) {
+			unsigned int seed;
+			#ifdef WIN32
+				seed = (unsigned int)time(NULL)
+					 ^ (unsigned int)GetCurrentProcessId()
+					 ^ (unsigned int)GetCurrentThreadId();
+			#else
+				seed = (unsigned int)time(NULL)
+					 ^ (unsigned int)getpid()
+					 ^ (unsigned int)(uintptr_t)pthread_self();
+            #endif
 			char buffer[25];
-			sprintf(buffer, "*EOD%d*", rand());
+			sprintf(buffer, "*EOD%d*", rand_r(&seed));
 			ps_printf(psdoc, "/%s\n", psimage->name);
 			ps_printf(psdoc, "currentfile\n");
 			ps_printf(psdoc, "<< /Filter /SubFileDecode\n");
